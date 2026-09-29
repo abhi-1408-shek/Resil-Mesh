@@ -9,7 +9,7 @@ export default function TelemetryModules() {
   const { thermal, structural, acoustic } = data.sensors;
 
   return (
-    <div className="flex flex-col space-y-4 h-full overflow-y-auto pr-2 pb-24">
+    <div className="flex flex-col space-y-4 h-full overflow-y-auto pr-1 sm:pr-2 pb-2 lg:pb-24">
       
       {/* Module A: Agnipath (Thermal) */}
       <div className={`p-4 rounded-xl border backdrop-blur-sm transition-colors duration-500 ${
