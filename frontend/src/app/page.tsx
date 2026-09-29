@@ -5,108 +5,87 @@ import TelemetryModules from '@/components/TelemetryModules';
 import ControlPanel from '@/components/ControlPanel';
 import { useTelemetryStore } from '@/store/telemetryStore';
 import { useEffect } from 'react';
-import { Activity, Wifi, WifiOff, Cpu } from 'lucide-react';
+import { Activity, Wifi, Cpu, Radio } from 'lucide-react';
 
 // Dynamically import map to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import('@/components/MapComponent'), {
   ssr: false,
-  loading: () => <div className="h-full w-full bg-slate-900 rounded-xl animate-pulse flex items-center justify-center border border-slate-800"><div className="text-slate-500 font-mono">Loading Map...</div></div>
+  loading: () => (
+    <div className="h-full w-full bg-slate-900 rounded-xl animate-pulse flex items-center justify-center border border-slate-800">
+      <div className="text-slate-500 font-mono text-sm">Loading Map...</div>
+    </div>
+  ),
 });
 
 export default function Home() {
-  const { data, isConnected, setConnected, updateData } = useTelemetryStore();
+  const { tick } = useTelemetryStore();
 
   useEffect(() => {
-    // Connect to Edge Simulator WebSocket
-    let ws: WebSocket;
-    let reconnectInterval: NodeJS.Timeout;
+    // Client-side simulation engine — runs entirely in the browser.
+    // In production, this replaces the WebSocket connection to the edge node.
+    // All AI inference is simulated locally (edge device telemetry is mocked).
+    const interval = setInterval(() => {
+      tick();
+    }, 1000);
 
-    const connect = () => {
-      try {
-        ws = new WebSocket('ws://localhost:8000/ws/telemetry');
-        
-        ws.onopen = () => {
-          setConnected(true);
-        };
-        
-        ws.onmessage = (event) => {
-          try {
-            const incomingData = JSON.parse(event.data);
-            updateData(incomingData);
-          } catch (e) {
-            console.error('Failed to parse telemetry data', e);
-          }
-        };
-        
-        ws.onclose = () => {
-          setConnected(false);
-          // Try to reconnect every 3 seconds
-          reconnectInterval = setTimeout(connect, 3000);
-        };
-        
-        ws.onerror = (error) => {
-          console.error('WebSocket Error', error);
-          ws.close();
-        };
-      } catch (error) {
-        console.error('WebSocket setup error', error);
-      }
-    };
-
-    connect();
-
-    return () => {
-      if (ws) ws.close();
-      if (reconnectInterval) clearTimeout(reconnectInterval);
-    };
-  }, [setConnected, updateData]);
+    return () => clearInterval(interval);
+  }, [tick]);
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-200 overflow-hidden flex flex-col font-sans">
-      {/* Top Navigation Bar */}
-      <header className="h-16 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-6 shrink-0">
+      {/* ── Top Navigation Bar ── */}
+      <header className="h-16 border-b border-slate-800 bg-slate-900/60 backdrop-blur-sm flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-2 rounded-lg shadow-lg shadow-blue-900/50">
             <Activity className="text-white" size={20} />
           </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            Resil-Mesh Command Center
-          </h1>
-          <span className="text-xs text-slate-500 font-mono ml-2 border-l border-slate-700 pl-4">Jammu Smart City</span>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-full px-3 py-1">
-            <Cpu size={14} className="text-slate-400" />
-            <span className="text-xs font-mono text-slate-300">Edge Processing: <span className="text-emerald-400">Local/Offline</span></span>
+          <div>
+            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent leading-tight">
+              Resil-Mesh Command Center
+            </h1>
+            <p className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">
+              Jammu Smart City — Tri-Hazard Edge Intelligence Network
+            </p>
           </div>
-          <div className={`flex items-center gap-2 border rounded-full px-3 py-1 ${isConnected ? 'bg-emerald-950/30 border-emerald-900/50' : 'bg-red-950/30 border-red-900/50'}`}>
-            {isConnected ? <Wifi size={14} className="text-emerald-500" /> : <WifiOff size={14} className="text-red-500" />}
-            <span className={`text-xs font-mono ${isConnected ? 'text-emerald-400' : 'text-red-400'}`}>
-              Network: {isConnected ? data.network_status : 'Disconnected'}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-full px-3 py-1.5">
+            <Cpu size={13} className="text-blue-400" />
+            <span className="text-xs font-mono text-slate-300">
+              Edge Processing: <span className="text-emerald-400 font-semibold">Local / Offline</span>
             </span>
+          </div>
+          <div className="flex items-center gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-full px-3 py-1.5">
+            <Radio size={13} className="text-emerald-400 animate-pulse" />
+            <span className="text-xs font-mono text-emerald-300">
+              LoRa Mesh: <span className="font-semibold">Active</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 bg-blue-950/50 border border-blue-800/50 rounded-full px-3 py-1.5">
+            <Wifi size={13} className="text-blue-400" />
+            <span className="text-xs font-mono text-blue-300">Live Telemetry</span>
           </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <div className="flex-1 p-6 grid grid-cols-12 gap-6 h-[calc(100vh-4rem)]">
-        
-        {/* Section 1: Live City Map (Left/Center Column - spans 8 cols) */}
-        <div className="col-span-8 h-full relative">
+      {/* ── Main Content ── */}
+      <div className="flex-1 p-4 grid grid-cols-12 gap-4 overflow-hidden" style={{ height: 'calc(100vh - 4rem)' }}>
+
+        {/* Section 1: Live City Map */}
+        <div className="col-span-8 h-full">
           <MapComponent />
         </div>
 
-        {/* Section 2: Tri-Hazard Telemetry Modules (Right Column - spans 4 cols) */}
-        <div className="col-span-4 h-full">
+        {/* Section 2: Telemetry Modules */}
+        <div className="col-span-4 h-full overflow-hidden">
           <TelemetryModules />
         </div>
 
       </div>
 
-      {/* Simulation Control Panel */}
+      {/* ── Demo Control Panel ── */}
       <ControlPanel />
-      
     </main>
   );
 }
